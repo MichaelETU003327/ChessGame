@@ -1,0 +1,115 @@
+package drawing;
+
+import java.awt.Color;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.Point;
+import java.awt.Rectangle;
+import java.util.Vector;
+
+import javax.swing.JPanel;
+
+import board.Board;
+import data.BoardData;
+import data.Db;
+import listening.Lsnr;
+import manager.GameManager;
+import manager.TurnManager;
+import pieces.Piece;
+import windowing.Window;
+
+public class Draw extends JPanel {
+    // Fields
+    private Window window;
+    private Board board;
+    private Vector<Piece> pieces;
+    private Piece clicked;
+
+    // Constructors
+    public Draw(Window window) {
+        this.window = window;
+        this.board = new Board(this);
+        this.pieces = new Db(this).pieceList();
+        this.clicked = null;
+    }
+
+    // Getters and Setters
+    public Vector<Piece> getPieces() {
+        return pieces;
+    }
+
+    public void setPieces(Vector<Piece> pieces) {
+        this.pieces = pieces;
+    }
+
+    public Piece getClicked() {
+        return clicked;
+    }
+
+    public void setClicked(Piece clicked) {
+        this.clicked = clicked;
+    }
+
+    // Methods
+    @Override
+    public void paint(Graphics g) {
+        super.paint(g);
+        Graphics2D g2d = (Graphics2D) g;
+        Lsnr lsnr = (Lsnr) getMouseListeners()[0];
+        String turn = TurnManager.get[lsnr.getTurn()];
+        if (GameManager.isGameOver(turn, pieces)) {
+            System.out.println("Echec et mat");            
+        }
+        Piece currKing = GameManager.getKing(turn, pieces);
+        if (currKing != null) {
+            if (GameManager.echec(turn, pieces)) {
+                currKing.setCaseColor(Color.RED);
+                for (Piece friend : GameManager.getFriendList(turn, pieces)) {
+                    friend.setCaseColor(Color.GREEN);
+                }
+            }
+        }
+
+        drawBoard(g);
+        drawPieces(g);
+        displayTurn(g, lsnr);
+        highlightValidMoves(g2d);
+    }
+
+    // Pour dessiner le plateau
+    private void drawBoard(Graphics g) {
+        board.deploy(g);
+    }
+
+    // Pour dessiner les pieces
+    private void drawPieces(Graphics g) {
+        for (Piece piece : pieces) {
+            piece.drawImage(g);
+        }
+    }
+
+    // Pour afficher le tour
+    private void displayTurn(Graphics g, Lsnr lsnr) {
+        // g.setColor(Color.BLACK);
+        // g.drawString(TurnManager.get[lsnr.getTurn()], BoardData.width + BoardData.unity, 60);
+    }
+
+    // Pour marquer les cases valides
+    private void highlightValidMoves(Graphics2D g2d) {
+        boolean bool = (clicked != null);
+        if (bool) {
+            g2d.setColor(Color.YELLOW);
+            for (Point point : GameManager.getFilteredMoveList(clicked, pieces)) {
+                if (!clicked.checkTreat(point.x, point.y, pieces)) {
+                    Rectangle highlight = new Rectangle(point.x + 5, point.y + 5, 75, 75);
+                    g2d.fill(highlight);
+                } else {
+                    Piece treat = Piece.getPiece(point.x, point.y, pieces);
+                    treat.setCaseColor(Color.RED);
+                    repaint();
+                }
+            }
+
+        }
+    }
+}

@@ -1,0 +1,1 @@
+javac -d ../bin  -source 8 -target 8 disp/*.java

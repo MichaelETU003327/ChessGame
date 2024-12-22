@@ -1,0 +1,178 @@
+package listening;
+
+import java.awt.Color;
+import java.awt.Point;
+import java.awt.Rectangle;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+import java.util.Vector;
+
+import data.BoardData;
+import manager.GameManager;
+import manager.TurnManager;
+import pieces.Piece;
+import windowing.Window;
+
+public class Lsnr implements MouseListener {
+    // Fields
+    private Window window;
+    private Piece selected = null;
+    private int turn = 0;
+    private boolean lan;
+
+    // Constructors
+    public Lsnr(Window window) {
+        this.window = window;
+        this.lan = window.getGameMode().equals("LAN");
+    }
+
+    // Getters and Setters
+    public int getTurn() {
+        return turn;
+    }
+
+    public void setTurn(int turn) {
+        this.turn = turn;
+    }
+
+    // Methods
+    public void switchTurn() {
+        turn = (turn + 1) % 2;
+    }
+
+    public void undo(Vector<Piece> list) {
+        if (selected != null) {
+            selected.setCaseColor(null);
+        }
+        selected = null;
+        window.getDraw().setClicked(null);
+        resetColors(list);
+    }
+
+    public void setActive() {
+        if (selected != null) {
+            selected.setCaseColor(Color.BLUE);
+            window.getDraw().setClicked(selected);
+        }
+    }
+
+    public void resetColors(Vector<Piece> list) {
+        for (Piece piece : list) {
+            piece.setCaseColor(null);
+        }
+    }
+
+    private void handlePieceSelectionLAN(Piece aimPiece, Vector<Piece> list) {
+        String tour = TurnManager.get[turn];
+
+        Vector<Piece> movable = GameManager.getMovables(tour, list);
+        if (!GameManager.isGameOver(tour, list)) {
+            if (selected == null) {
+                selected = aimPiece;
+                boolean bool = (selected != null);
+                if (!movable.isEmpty()) {
+                    bool = bool && (movable.contains(selected));
+                }
+                if (bool) {
+                    boolean condition = selected.getColor().equals(tour)
+                            && selected.getColor().equals(window.getColor());
+                    if (condition) {
+                        setActive();
+                    } else {
+                        undo(list);
+                    }
+                }
+            }
+        }
+    }
+
+    private void handlePieceSelection(Piece aimPiece, Vector<Piece> list) {
+        String tour = TurnManager.get[turn];
+
+        Vector<Piece> movable = GameManager.getMovables(tour, list);
+        if (!GameManager.isGameOver(tour, list)) {
+            if (selected == null) {
+                selected = aimPiece;
+                boolean bool = (selected != null);
+                if (!movable.isEmpty()) {
+                    bool = bool && (movable.contains(selected));
+                }
+                if (bool) {
+                    boolean condition = selected.getColor().equals(tour);
+                    if (condition) {
+                        setActive();
+                    } else {
+                        undo(list);
+                    }
+                }
+            }
+        }
+    }
+
+    private void handleMove(Rectangle aim, Piece aimPiece, Vector<Piece> list) {
+        if (selected != null && aim != null) {
+            if (!selected.equals(aimPiece)) {
+                if (GameManager.getFilteredMoveList(selected, list).contains(new Point(aim.x, aim.y))) {
+                    selected.move(aim.x, aim.y);
+                    selected.kill(aimPiece, list);
+                    switchTurn();
+                    undo(list);
+                } else if (aimPiece != null && selected.isFriend(aimPiece)) {
+                    undo(list);
+                    handlePieceSelection(aimPiece, list);
+                } else {
+                    undo(list);
+                }
+            }
+
+        }
+    }
+
+    public void execute(int x, int y) {
+        Vector<Piece> list = window.getDraw().getPieces();
+        Piece aimPiece = Piece.getPiece(x, y, list);
+        Rectangle aim = BoardData.getRectangle(x, y);
+
+        handlePieceSelection(aimPiece, list);
+        handleMove(aim, aimPiece, list);
+
+        window.getDraw().repaint();
+    }
+
+    public void executeLAN(int x, int y) {
+        Vector<Piece> list = window.getDraw().getPieces();
+        Piece aimPiece = Piece.getPiece(x, y, list);
+        Rectangle aim = BoardData.getRectangle(x, y);
+
+        handlePieceSelectionLAN(aimPiece, list);
+        handleMove(aim, aimPiece, list);
+
+        window.getDraw().repaint();
+    }
+
+    @Override
+    public void mouseClicked(MouseEvent e) {
+        if (lan) {
+            window.getNetManager().setMove(new Point(e.getX(), e.getY()));
+            executeLAN(e.getX(), e.getY());
+        } else {
+            execute(e.getX(), e.getY());
+        }
+    }
+
+    @Override
+    public void mousePressed(MouseEvent e) {
+    }
+
+    @Override
+    public void mouseReleased(MouseEvent e) {
+    }
+
+    @Override
+    public void mouseEntered(MouseEvent e) {
+    }
+
+    @Override
+    public void mouseExited(MouseEvent e) {
+    }
+}

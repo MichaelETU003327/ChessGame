@@ -1,0 +1,222 @@
+package manager;
+
+import java.util.Vector;
+
+import javax.sound.midi.VoiceStatus;
+
+import data.BoardData;
+import data.Db;
+
+import java.awt.*;
+
+import pieces.King;
+import pieces.Pawn;
+import pieces.Piece;
+
+public class GameManager {
+
+    // Liste des mvts possibles pour une piece si le roi n'est pas en echec
+    public static Vector<Point> getFriendMoveList(Piece p, Vector<Piece> list) {
+        Vector<Point> moves = new Vector<>();
+        for (Rectangle cell : BoardData.RECTANGLES()) {
+            if (p.isValid(cell.x, cell.y, list)) {
+                moves.addElement(new Point(cell.x, cell.y));
+            }
+        }
+        return moves;
+    }
+
+    // Liste des mvts possibles pour une piece si le roi est en echec
+    public static Vector<Point> getMoveList(Piece p, Vector<Piece> list) {
+        Vector<Point> moves = new Vector<>();
+        for (Rectangle cell : BoardData.RECTANGLES()) {
+            if (p instanceof Pawn) {
+                if (p.canMoveOnE(cell.x, cell.y)) {
+                    moves.addElement(new Point(cell.x, cell.y));
+                }
+            } else {
+                if (p.isValid(cell.x, cell.y, list)) {
+                    moves.addElement(new Point(cell.x, cell.y));
+                }
+            }
+
+        }
+        return moves;
+    }
+
+    // Pour avoir le roi du tour actuel
+    public static Piece getKing(String turn, Vector<Piece> list) {
+        for (Piece piece : list) {
+            if (piece instanceof King) {
+                if (piece.getColor().equals(turn)) {
+                    return piece;
+                }
+            }
+        }
+        return null;
+    }
+
+    // Pour voir si le roi actuel est en echec
+    public static boolean echec(String turn, Vector<Piece> list) {
+        Piece King = getKing(turn, list);
+        if (King != null) {
+            for (Piece treat : list) {
+                if (!King.isFriend(treat)) {
+                    Vector<Point> moves = getMoveList(treat, list);
+                    if (moves.contains(new Point(King.getX(), King.getY()))) {
+                        return true;
+                    }
+                }
+
+            }
+        }
+        return false;
+    }
+
+    // Liste des pieces pouvant attaquer le roi
+    public static Vector<Piece> getTreatList(String turn, Vector<Piece> list) {
+        Vector<Piece> treats = new Vector<>();
+        Piece King = getKing(turn, list);
+        if (King != null) {
+            for (Piece treat : list) {
+                if (!King.isFriend(treat)) {
+                    Vector<Point> moves = getMoveList(treat, list);
+                    if (moves.contains(new Point(King.getX(), King.getY()))) {
+                        treats.addElement(treat);
+                    }
+                }
+
+            }
+        }
+        return treats;
+    }
+
+    // Liste des amis pouvant couvrir le roi actuel
+    public static Vector<Piece> getFriendList(String turn, Vector<Piece> list) {
+        Vector<Piece> friends = new Vector<>();
+        Piece King = getKing(turn, list);
+        Vector<Piece> treats = getTreatList(turn, list);
+        if (King != null) {
+            for (Piece friend : list) {
+                if (King.isFriend(friend)) {
+                    Vector<Point> moves = getFriendMoveList(friend, list);
+                    for (Point move : moves) {
+                        for (Piece treat : treats) {
+                            Vector<Point> treatPaths = treat.pathPoints(list, King);
+                            if (treatPaths.contains(move)) {
+                                if (!friends.contains(friend)) {
+                                    friends.addElement(friend);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return friends;
+    }
+
+    // Liste de mouvement suggeré pour chaque ami pour sauver le roi
+    public static Vector<Point> getFriendMove(Piece friend, String turn, Vector<Piece> list) {
+        Piece King = getKing(turn, list);
+        Vector<Point> ans = new Vector<>();
+        Vector<Piece> treats = getTreatList(turn, list);
+        Vector<Point> moves = getFriendMoveList(friend, list);
+        for (Point move : moves) {
+            for (Piece treat : treats) {
+                Vector<Point> treatPaths = treat.pathPoints(list, King);
+                if (treatPaths.contains(move)) {
+                    if (!ans.contains(move)) {
+                        ans.addElement(move);
+                    }
+                }
+            }
+        }
+
+        return ans;
+    }
+
+    // Verifie si sur l'endroit voulu , le roi est en echec ou non
+    public static boolean isKingInCheck(Piece King, int x, int y, Vector<Piece> list) {
+        Vector<Piece> db = (Vector<Piece>) list.clone();
+        db.remove(King);
+        Piece p = Piece.getPiece(x, y, db);
+        if (p != null) {
+            if (King.checkTreat(x, y, db)) {
+                db.remove(p);
+            }
+        }
+        for (Piece piece : db) {
+            if (!King.isFriend(piece)) {
+
+                if (getMoveList(piece, list).contains(new Point(x, y)))
+                    return true;
+            }
+
+        }
+        return false;
+    }
+
+    // Verifie si le roi actuel peut encore bouger
+    public static boolean canMoveKing(Piece King, Vector<Piece> list) {
+        for (Point point : getMoveList(King, list)) {
+            if (!isKingInCheck(King, point.x, point.y, list)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // Nouvelle liste de point valide pour le roi
+    public static Vector<Point> getKingMoveList(Piece King, Vector<Piece> list) {
+        Vector<Point> points = new Vector<>();
+        for (Point point : getMoveList(King, list)) {
+            if (!isKingInCheck(King, point.x, point.y, list)) {
+                if (!points.contains(point)) {
+                    points.addElement(point);
+                }
+            }
+        }
+        return points;
+    }
+
+    public static Vector<Point> getFilteredMoveList(Piece piece, Vector<Piece> list) {
+        Vector<Point> ret = new Vector<>();
+        if (piece instanceof King) {
+            ret = getKingMoveList(piece, list);
+        } else {
+            String turn = piece.getColor();
+            if (echec(turn, list)) {
+                ret = getFriendMove(piece, turn, list);
+            } else {
+                ret = getFriendMoveList(piece, list);
+            }
+        }
+        return ret;
+    }
+
+    public static Vector<Piece> getMovables(String turn, Vector<Piece> list) {
+        Piece king = getKing(turn, list);
+        Vector<Piece> movable = new Vector<>();
+        if (echec(turn, list)) {
+            if (canMoveKing(king, list)) {
+                movable.addElement(king);
+            }
+            movable.addAll(getFriendList(turn, list));
+        }
+        return movable;
+    }
+
+    public static boolean isGameOver(String turn, Vector<Piece> list) {
+        Piece king = getKing(turn, list);
+        if (echec(turn, list)) {
+            if (!canMoveKing(king, list)) {
+                if (getFriendList(turn, list).isEmpty()) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+}
