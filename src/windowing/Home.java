@@ -1,6 +1,7 @@
 package windowing;
 
 import java.awt.BorderLayout;
+import java.awt.FlowLayout;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
@@ -54,11 +55,10 @@ public class Home extends JPanel {
                     System.exit(0);
                 } else {
                     window.setGameMode(text);
-                    this.setVisible(false);
                     if (text.equals("LAN")) {
                         window.getLogin().show();
                     } else {
-                        window.add(window.getDraw());
+                        window.add(window.getDraw(), BorderLayout.CENTER); // Plateau de jeu au centre
                     }
                 }
             });

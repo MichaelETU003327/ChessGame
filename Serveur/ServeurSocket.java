@@ -100,6 +100,20 @@ public class ServeurSocket {
                         // Liste des parties disponibles
                         out.writeObject(new ArrayList<>(parties.keySet()));
                         out.flush();
+                    } else if (commande.startsWith("CHAT")) {
+                        String[] splited = commande.split(" ");
+                        String partieID = splited[1];
+                        // Liste de tous les messages dans la partie actu
+                        Partie partie = parties.get(partieID);
+                        String username = splited[2];
+                        String text = splited[3];
+                        String mess = "MESSAGE" + username + ": " + text;
+
+                        joueursConnectes.get(partie.joueur1).out.writeObject(mess);
+                        joueursConnectes.get(partie.joueur1).out.flush();
+
+                        joueursConnectes.get(partie.joueur2).out.writeObject(mess);
+                        joueursConnectes.get(partie.joueur2).out.flush();
                     } else if (commande.equals("QUIT")) {
                         out.writeObject("Déconnexion...");
                         break;

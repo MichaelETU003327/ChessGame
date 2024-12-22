@@ -9,6 +9,7 @@ import java.nio.channels.Pipe;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Vector;
 
 import javax.swing.JFrame;
 
@@ -93,8 +94,22 @@ public class NetworkManager {
                         window.setColor(message);
                         window.setTitle("ChessGame: " + window.getUsername() + ";" + window.getColor());
                         window.getLanHome().setVisible(false);
-                        window.add(window.getDraw());
+                        // Ajouter les composants
+                        window.add(window.getDraw(), BorderLayout.CENTER); // Plateau de jeu au centre
+                        window.add(window.getChat(), BorderLayout.EAST); // Chat à droite
+                        window.getChat().show();
                         window.revalidate();
+                    }
+                    if (message.startsWith("MESSAGE")) {
+                        String tmp = message.replace("MESSAGE", "");
+                        tmp = tmp.trim();
+                        tmp += "\n";
+                        String curr = window.getChat().getTextArea().getText();
+                        if (curr == null) {
+                            curr = "";
+                        }
+                        curr += tmp;
+                        window.getChat().getTextArea().setText(curr);
                     }
                 } else if (obj instanceof Point) {
                     Point move1 = (Point) obj;

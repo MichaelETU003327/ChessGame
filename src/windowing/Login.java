@@ -13,9 +13,22 @@ import manager.NetworkManager;
 
 public class Login extends JPanel {
     Window window;
+    JTextField usernameField;
 
     public Login(Window window) {
         this.window = window;
+        this.setLayout(new GridBagLayout());
+        usernameField = new JTextField(15);
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(5, 5, 5, 5);
+
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        this.add(new JLabel("Nom d'utilisateur :"), gbc);
+
+        gbc.gridx = 1;
+        this.add(usernameField, gbc);
     }
 
     public Window getWindow() {
@@ -27,30 +40,18 @@ public class Login extends JPanel {
     }
 
     public void show() {
-        this.setLayout(new GridBagLayout());
-        JTextField usernameField = new JTextField(15);
-
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(5, 5, 5, 5);
-
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        this.add(new JLabel("Nom d'utilisateur :"), gbc);
-
-        gbc.gridx = 1;
-        this.add(usernameField, gbc);
-
         int result = JOptionPane.showConfirmDialog(
                 window, this, "Connexion", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
 
         if (result == JOptionPane.OK_OPTION) {
+            window.getHome().setVisible(false);
             window.setUsername(usernameField.getText().trim());
             window.add(window.getLanHome());
             window.getLanHome().show();
             window.revalidate();
             window.setNetManager(new NetworkManager(window));
             window.getNetManager().initialize("localhost", 1234);
-            window.getNetManager().sendMessage(window.getUsername());  
+            window.getNetManager().sendMessage(window.getUsername());
         }
 
     }

@@ -15,12 +15,12 @@ public class Window extends JFrame {
     Home home;
     Login login;
     LanHome lanHome;
+    Chat chat;
 
     String username;
     String color;
     String gameMode;
     String party;
-    
 
     NetworkManager netManager;
 
@@ -88,6 +88,7 @@ public class Window extends JFrame {
     public void setLanHome(LanHome lanHome) {
         this.lanHome = lanHome;
     }
+
     public String getParty() {
         return party;
     }
@@ -96,18 +97,30 @@ public class Window extends JFrame {
         this.party = party;
     }
 
+    public Chat getChat() {
+        return chat;
+    }
+
+    public void setChat(Chat chat) {
+        this.chat = chat;
+    }
+
+
+
+
     // Constructor
     public Window() {
         this.home = new Home(this);
         this.draw = new Draw(this);
         this.draw.addMouseListener(new Lsnr(this));
+        this.chat = new Chat(this);
         this.login = new Login(this);
         this.lanHome = new LanHome(this);
         this.add(home);
-        this.setSize(750, 750);
+        this.setSize(1000, 750);
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         this.setVisible(true);
+        
     }
 
-    
 }
